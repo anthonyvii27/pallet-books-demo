@@ -39,6 +39,11 @@ pub mod pallet {
 			book: Option<BoundedVec<u8, MaxStringLength>>,
 			who: T::AccountId,
 		},
+		BooksUpdated {
+			book_id: u32,
+			book: BoundedVec<u8, MaxStringLength>,
+			who: T::AccountId,
+		},
 	}
 
 	#[pallet::error]
@@ -72,6 +77,23 @@ pub mod pallet {
 			Self::deposit_event(Event::BooksRetrieved { book_id, book, who });
 
 			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::update_book())]
+		pub fn update_book(origin: OriginFor<T>, book_id: u32, new_book: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			let existing_book = Book::<T>::get((who.clone(), book_id))
+				.ok_or(Error::<T>::BookNotFound)?;
+
+			let bounded_string = BoundedVec::try_from(new_book.clone())
+				.map_err(|_| Error::<T>::StorageOverflow)?;
+
+			Book::<T>::insert((who.clone(), book_id), bounded_string.clone());
+
+			Self::deposit_event(Event::BooksUpdated { book_id, book: bounded_string, who });
+
+			Ok(())
 		}
 	}
 }
