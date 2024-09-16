@@ -44,6 +44,10 @@ pub mod pallet {
 			book: BoundedVec<u8, MaxStringLength>,
 			who: T::AccountId,
 		},
+		BooksDeleted {
+			book_id: u32,
+			who: T::AccountId,
+		},
 	}
 
 	#[pallet::error]
@@ -92,6 +96,19 @@ pub mod pallet {
 			Book::<T>::insert((who.clone(), book_id), bounded_string.clone());
 
 			Self::deposit_event(Event::BooksUpdated { book_id, book: bounded_string, who });
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::delete_book())]
+		pub fn delete_book(origin: OriginFor<T>, book_id: u32) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Book::<T>::contains_key((who.clone(), book_id)), Error::<T>::BookNotFound);
+
+			Book::<T>::remove((who.clone(), book_id));
+
+			Self::deposit_event(Event::BooksDeleted { book_id, who });
 
 			Ok(())
 		}
